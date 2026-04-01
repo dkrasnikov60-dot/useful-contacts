@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Полезные связи — добавить контакт</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.98);
+            border-radius: 32px;
+            padding: 32px 24px;
+            max-width: 500px;
+            width: 100%;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .icon {
+            width: 64px;
+            height: 64px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 20px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 16px;
+        }
+
+        .icon svg {
+            width: 32px;
+            height: 32px;
+            color: white;
+        }
+
+        h1 {
+            font-size: 28px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            margin-bottom: 8px;
+        }
+
+        .subtitle {
+            color: #6b7280;
+            font-size: 14px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            color: #374151;
+            margin-bottom: 8px;
+        }
+
+        input, textarea, select {
+            width: 100%;
+            padding: 14px 16px;
+            border: 2px solid #e5e7eb;
+            border-radius: 16px;
+            font-size: 16px;
+            font-family: inherit;
+            transition: all 0.2s;
+            background: #f9fafb;
+        }
+
+        input:focus, textarea:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .tag-selector {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 8px;
+        }
+
+        .tag {
+            padding: 8px 16px;
+            border-radius: 30px;
+            background: #f3f4f6;
+            color: #4b5563;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 2px solid transparent;
+        }
+
+        .tag.selected {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .tag:hover {
+            transform: scale(1.02);
+            background: #e5e7eb;
+        }
+
+        .tag.selected:hover {
+            background: linear-gradient(135deg, #5a67d8 0%, #6b46a1 100%);
+        }
+
+        .custom-tag-input {
+            margin-top: 12px;
+            display: none;
+        }
+
+        .custom-tag-input.active {
+            display: block;
+        }
+
+        button {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 40px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-top: 8px;
+        }
+
+        button:hover {
+            transform: scale(1.02);
+            box-shadow: 0 10px 25px -5px rgba(102, 126, 234, 0.4);
+        }
+
+        button:active {
+            transform: scale(0.98);
+        }
+
+        .success-message, .error-message {
+            text-align: center;
+            padding: 16px;
+            border-radius: 16px;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .success-message {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .error-message {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 24px;
+            font-size: 12px;
+            color: #9ca3af;
+        }
+
+        .loader {
+            display: none;
+            width: 24px;
+            height: 24px;
+            border: 3px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="header">
+            <div class="icon">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+            </div>
+            <h1>Полезные связи</h1>
+            <p class="subtitle">Поделитесь контактом — я сохраню в базу</p>
+        </div>
+
+        <div class="form-group">
+            <label>📱 Номер телефона *</label>
+            <input type="tel" id="phone" placeholder="+7 999 123-45-67" value="">
+        </div>
+
+        <div class="form-group">
+            <label>👤 Имя *</label>
+            <input type="text" id="name" placeholder="Иван Иванов">
+        </div>
+
+        <div class="form-group">
+            <label>📝 Дополнительная информация</label>
+            <textarea id="info" placeholder="Компания, должность, примечания..."></textarea>
+        </div>
+
+        <div class="form-group">
+            <label>🏷️ Категория (тег)</label>
+            <div class="tag-selector" id="tagSelector">
+                <div class="tag" data-tag="Поставщики">📦 Поставщики</div>
+                <div class="tag" data-tag="Клиенты">🤝 Клиенты</div>
+                <div class="tag" data-tag="Друзья">👥 Друзья</div>
+                <div class="tag" data-tag="Работа">💼 Работа</div>
+                <div class="tag" data-tag="Семья">🏠 Семья</div>
+                <div class="tag" data-tag="custom">✏️ Свой вариант</div>
+            </div>
+            <div class="custom-tag-input" id="customTagInput">
+                <input type="text" id="customTag" placeholder="Введите свой тег">
+            </div>
+        </div>
+
+        <button id="submitBtn">💾 Сохранить контакт</button>
+
+        <div class="success-message" id="successMsg">
+            ✅ Контакт успешно сохранён!
+        </div>
+        <div class="error-message" id="errorMsg">
+            ❌ Произошла ошибка. Попробуйте позже.
+        </div>
+
+        <div class="footer">
+            Контакт будет добавлен в ваш список «Полезные связи»
+        </div>
+    </div>
+
+    <script>
+        // Telegram WebApp API
+        let tg = window.Telegram?.WebApp;
+        
+        if (tg) {
+            tg.expand(); // Растягиваем на весь экран
+            tg.enableClosingConfirmation(); // Подтверждение при закрытии
+            tg.BackButton.show(); // Показываем кнопку назад
+            tg.BackButton.onClick(() => {
+                tg.close();
+            });
+        }
+
+        // Выбор тега
+        let selectedTag = 'Поставщики';
+        const tags = document.querySelectorAll('.tag');
+        const customTagInput = document.getElementById('customTagInput');
+        const customTagField = document.getElementById('customTag');
+
+        tags.forEach(tag => {
+            tag.addEventListener('click', () => {
+                tags.forEach(t => t.classList.remove('selected'));
+                tag.classList.add('selected');
+                
+                if (tag.dataset.tag === 'custom') {
+                    customTagInput.classList.add('active');
+                    selectedTag = '';
+                } else {
+                    customTagInput.classList.remove('active');
+                    selectedTag = tag.dataset.tag;
+                }
+            });
+        });
+
+        // Выбираем первый тег по умолчанию
+        tags[0].classList.add('selected');
+
+        // Получение номера телефона из Telegram
+        if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
+            const phoneInput = document.getElementById('phone');
+            // Если у пользователя есть номер в Telegram — подставляем
+            if (tg.initDataUnsafe.user.phone_number) {
+                phoneInput.value = tg.initDataUnsafe.user.phone_number;
+            }
+        }
+
+        // Отправка данных
+        document.getElementById('submitBtn').addEventListener('click', async () => {
+            const phone = document.getElementById('phone').value.trim();
+            const name = document.getElementById('name').value.trim();
+            const info = document.getElementById('info').value.trim();
+            
+            let tag = selectedTag;
+            if (customTagInput.classList.contains('active')) {
+                const custom = customTagField.value.trim();
+                if (custom) tag = custom;
+                else {
+                    showError('Пожалуйста, введите свой тег');
+                    return;
+                }
+            }
+
+            if (!phone) {
+                showError('Введите номер телефона');
+                return;
+            }
+            
+            if (!name) {
+                showError('Введите имя');
+                return;
+            }
+
+            if (!tag) {
+                tag = 'Поставщики';
+            }
+
+            hideMessages();
+
+            const submitBtn = document.getElementById('submitBtn');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.innerHTML = '<div class="loader"></div>';
+            submitBtn.disabled = true;
+
+            try {
+                // Отправляем данные в Telegram WebApp
+                const data = {
+                    phone: phone,
+                    name: name,
+                    info: info,
+                    tag: tag
+                };
+
+                if (tg) {
+                    tg.sendData(JSON.stringify(data));
+                    tg.close();
+                } else {
+                    // Для тестирования в браузере
+                    console.log('Data to send:', data);
+                    showSuccess();
+                    setTimeout(() => {
+                        window.location.href = 'https://t.me/ПолезныеСвязиBot';
+                    }, 1500);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showError('Ошибка отправки');
+            } finally {
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
+            }
+        });
+
+        function showSuccess() {
+            const msg = document.getElementById('successMsg');
+            msg.style.display = 'block';
+            setTimeout(() => {
+                msg.style.display = 'none';
+            }, 2000);
+        }
+
+        function showError(text) {
+            const msg = document.getElementById('errorMsg');
+            msg.textContent = text || '❌ Произошла ошибка. Попробуйте позже.';
+            msg.style.display = 'block';
+            setTimeout(() => {
+                msg.style.display = 'none';
+            }, 3000);
+        }
+
+        function hideMessages() {
+            document.getElementById('successMsg').style.display = 'none';
+            document.getElementById('errorMsg').style.display = 'none';
+        }
+    </script>
+</body>
+</html>
