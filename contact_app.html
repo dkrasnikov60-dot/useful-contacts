@@ -22,7 +22,6 @@
             max-width: 500px;
             width: 100%;
             box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-            transition: all 0.3s ease;
         }
         h1 {
             font-size: 28px;
@@ -40,7 +39,7 @@
             font-size: 14px;
             margin-bottom: 24px;
         }
-        button {
+        .import-btn {
             width: 100%;
             padding: 16px;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -50,11 +49,43 @@
             font-size: 16px;
             font-weight: 600;
             cursor: pointer;
-            transition: all 0.2s;
-            margin-top: 12px;
+            margin-bottom: 20px;
         }
-        button:active {
-            transform: scale(0.98);
+        .divider {
+            text-align: center;
+            margin: 20px 0;
+            color: #9ca3af;
+            position: relative;
+        }
+        .divider::before, .divider::after {
+            content: "";
+            position: absolute;
+            top: 50%;
+            width: 40%;
+            height: 1px;
+            background: #e5e7eb;
+        }
+        .divider::before { left: 0; }
+        .divider::after { right: 0; }
+        .manual-form input, .manual-form textarea {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 12px;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+        .manual-form button {
+            width: 100%;
+            padding: 14px;
+            background: #f3f4f6;
+            border: none;
+            border-radius: 40px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 8px;
         }
         .tag-selector {
             display: flex;
@@ -68,7 +99,6 @@
             border-radius: 30px;
             background: #f3f4f6;
             cursor: pointer;
-            transition: all 0.2s;
             font-size: 14px;
         }
         .tag.selected {
@@ -76,295 +106,115 @@
             color: white;
         }
         .status {
-            margin-top: 16px;
-            padding: 12px;
+            margin: 12px 0;
+            padding: 10px;
             border-radius: 12px;
             text-align: center;
-            display: none;
             font-size: 14px;
-        }
-        .status.error {
-            background: #fee2e2;
-            color: #991b1b;
-            display: block;
-        }
-        .status.info {
-            background: #dbeafe;
-            color: #1e40af;
-            display: block;
-        }
-        .status.success {
-            background: #d1fae5;
-            color: #065f46;
-            display: block;
-        }
-        .loader {
-            display: inline-block;
-            width: 20px;
-            height: 20px;
-            border: 2px solid rgba(255,255,255,0.3);
-            border-radius: 50%;
-            border-top-color: white;
-            animation: spin 0.6s linear infinite;
-            margin-right: 8px;
-            vertical-align: middle;
-        }
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-        button:disabled {
-            opacity: 0.7;
-            cursor: not-allowed;
-        }
-        .fallback-form {
             display: none;
-            margin-top: 20px;
-            padding-top: 20px;
-            border-top: 1px solid #e5e7eb;
         }
-        .fallback-form input, .fallback-form textarea {
-            width: 100%;
-            padding: 12px;
-            margin-bottom: 12px;
-            border: 1px solid #e5e7eb;
-            border-radius: 12px;
-            font-size: 16px;
-            box-sizing: border-box;
-        }
-        .fallback-form input:focus, .fallback-form textarea:focus {
-            outline: none;
-            border-color: #667eea;
-        }
-        .fallback-title {
-            text-align: center;
-            color: #374151;
-            margin-bottom: 12px;
-            font-weight: 500;
-        }
+        .status.error { background: #fee2e2; color: #991b1b; display: block; }
+        .status.success { background: #d1fae5; color: #065f46; display: block; }
     </style>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 <body>
-    <div class="card" id="app">
-        <h1>📱 Полезные связи</h1>
-        <p class="subtitle" id="subtitle">Загрузка...</p>
+<div class="card">
+    <h1>📱 Полезные связи</h1>
+    <p class="subtitle">Добавление контакта</p>
 
-        <div id="mainContent" style="display: none;">
-            <div class="tag-selector" id="tagSelector">
-                <div class="tag selected" data-tag="Поставщики">📦 Поставщики</div>
-                <div class="tag" data-tag="Клиенты">🤝 Клиенты</div>
-                <div class="tag" data-tag="Друзья">👥 Друзья</div>
-                <div class="tag" data-tag="Работа">💼 Работа</div>
-                <div class="tag" data-tag="Семья">🏠 Семья</div>
-            </div>
+    <button class="import-btn" id="importBtn">📖 Разрешить доступ и импортировать контакты</button>
+    <div class="divider">или</div>
 
-            <button id="importBtn">📖 Разрешить доступ и импортировать контакты</button>
-            <div id="status" class="status"></div>
-
-            <!-- Запасной вариант: ручной ввод -->
-            <div id="fallbackForm" class="fallback-form">
-                <div class="fallback-title">📝 Или добавьте вручную</div>
-                <input type="text" id="manualName" placeholder="Имя">
-                <input type="tel" id="manualPhone" placeholder="Телефон">
-                <textarea id="manualInfo" placeholder="Доп. информация (необязательно)" rows="2"></textarea>
-                <button id="manualSubmitBtn">💾 Сохранить контакт</button>
-            </div>
+    <div class="manual-form">
+        <div class="tag-selector" id="tagSelector">
+            <div class="tag selected" data-tag="Поставщики">📦 Поставщики</div>
+            <div class="tag" data-tag="Клиенты">🤝 Клиенты</div>
+            <div class="tag" data-tag="Друзья">👥 Друзья</div>
+            <div class="tag" data-tag="Работа">💼 Работа</div>
+            <div class="tag" data-tag="Семья">🏠 Семья</div>
         </div>
+        <input type="text" id="name" placeholder="Имя *">
+        <input type="tel" id="phone" placeholder="Телефон *">
+        <textarea id="info" placeholder="Доп. информация" rows="2"></textarea>
+        <button id="saveBtn">💾 Сохранить контакт</button>
     </div>
+    <div id="status" class="status"></div>
+</div>
 
-    <script>
-        (function() {
-            let tg = null;
-            let selectedTag = "Поставщики";
-            let webAppReady = false;
+<script>
+    let tg = window.Telegram?.WebApp;
+    if (tg) {
+        tg.expand();
+        tg.ready();
+        if (tg.BackButton) tg.BackButton.show();
+    }
 
-            // Ждём загрузки Telegram WebApp SDK
-            function waitForTelegram() {
-                return new Promise((resolve) => {
-                    if (typeof window.Telegram !== 'undefined' && window.Telegram.WebApp) {
-                        resolve(window.Telegram.WebApp);
-                        return;
-                    }
-                    let checkInterval = setInterval(() => {
-                        if (typeof window.Telegram !== 'undefined' && window.Telegram.WebApp) {
-                            clearInterval(checkInterval);
-                            resolve(window.Telegram.WebApp);
-                        }
-                    }, 50);
-                    setTimeout(() => {
-                        clearInterval(checkInterval);
-                        resolve(null);
-                    }, 2000);
-                });
-            }
+    let selectedTag = "Поставщики";
+    document.querySelectorAll('.tag').forEach(tag => {
+        tag.addEventListener('click', () => {
+            document.querySelectorAll('.tag').forEach(t => t.classList.remove('selected'));
+            tag.classList.add('selected');
+            selectedTag = tag.dataset.tag;
+        });
+    });
 
-            // Инициализация
-            async function init() {
-                const subtitle = document.getElementById('subtitle');
-                const mainContent = document.getElementById('mainContent');
-                
-                tg = await waitForTelegram();
-                
-                if (tg && tg.initData) {
-                    // Внутри Telegram
-                    tg.expand();
-                    tg.ready();
-                    webAppReady = true;
-                    subtitle.textContent = 'Импорт контактов из телефона';
-                    mainContent.style.display = 'block';
-                    
-                    // Настройка кнопки назад
-                    if (tg.BackButton) {
-                        tg.BackButton.show();
-                        tg.BackButton.onClick(() => tg.close());
-                    }
-                } else {
-                    // Не в Telegram — показываем только ручной ввод
-                    subtitle.textContent = 'Добавление контакта';
-                    mainContent.style.display = 'block';
-                    const importBtn = document.getElementById('importBtn');
-                    importBtn.style.display = 'none';
-                    const fallbackForm = document.getElementById('fallbackForm');
-                    fallbackForm.style.display = 'block';
-                    webAppReady = false;
-                }
-                
-                // Настройка выбора тегов
-                document.querySelectorAll('.tag').forEach(tag => {
-                    tag.addEventListener('click', () => {
-                        document.querySelectorAll('.tag').forEach(t => t.classList.remove('selected'));
-                        tag.classList.add('selected');
-                        selectedTag = tag.dataset.tag;
-                    });
-                });
-                
-                // Кнопка импорта
-                const importBtn = document.getElementById('importBtn');
-                importBtn.addEventListener('click', handleImport);
-                
-                // Ручное сохранение
-                const manualSubmitBtn = document.getElementById('manualSubmitBtn');
-                manualSubmitBtn.addEventListener('click', handleManualSubmit);
+    function showStatus(msg, isError = false) {
+        const statusDiv = document.getElementById('status');
+        statusDiv.textContent = msg;
+        statusDiv.className = 'status ' + (isError ? 'error' : 'success');
+        setTimeout(() => {
+            statusDiv.style.display = 'none';
+        }, 3000);
+    }
+
+    // Импорт контактов
+    document.getElementById('importBtn').addEventListener('click', async () => {
+        if (!navigator.contacts) {
+            showStatus('❌ Импорт контактов доступен только на телефоне (Android Chrome / iOS Safari)', true);
+            return;
+        }
+        try {
+            const contacts = await navigator.contacts.select(['name', 'tel']);
+            if (!contacts || contacts.length === 0) {
+                showStatus('❌ Контакты не выбраны', true);
+                return;
             }
-            
-            // Импорт контактов
-            async function handleImport() {
-                const statusDiv = document.getElementById('status');
-                const btn = document.getElementById('importBtn');
-                
-                // Проверка поддержки API
-                if (!navigator.contacts) {
-                    statusDiv.className = 'status error';
-                    statusDiv.textContent = '❌ Импорт контактов доступен только на Android (Chrome) или iOS (Safari). Используйте ручной ввод ниже.';
-                    return;
-                }
-                
-                btn.disabled = true;
-                btn.innerHTML = '<span class="loader"></span> Запрос доступа...';
-                statusDiv.className = 'status info';
-                statusDiv.textContent = 'Запрашиваем доступ к контактам...';
-                
-                try {
-                    const opts = { types: [{ type: 'contacts' }] };
-                    const contacts = await navigator.contacts.select(['name', 'tel'], opts);
-                    
-                    if (!contacts || contacts.length === 0) {
-                        statusDiv.className = 'status error';
-                        statusDiv.textContent = '❌ Контакты не выбраны или доступ запрещён';
-                        btn.disabled = false;
-                        btn.innerHTML = '📖 Разрешить доступ и импортировать контакты';
-                        return;
-                    }
-                    
-                    statusDiv.textContent = `📥 Импортируем ${contacts.length} контактов...`;
-                    
-                    const contactsData = [];
-                    for (let contact of contacts) {
-                        let name = contact.name?.[0] || 'Без имени';
-                        let phone = contact.tel?.[0]?.value || '';
-                        if (phone) {
-                            contactsData.push({ name, phone });
-                        }
-                    }
-                    
-                    if (contactsData.length === 0) {
-                        statusDiv.className = 'status error';
-                        statusDiv.textContent = '❌ Нет контактов с номерами телефонов';
-                        btn.disabled = false;
-                        btn.innerHTML = '📖 Разрешить доступ и импортировать контакты';
-                        return;
-                    }
-                    
-                    if (webAppReady && tg) {
-                        tg.sendData(JSON.stringify({
-                            action: 'import_contacts',
-                            tag: selectedTag,
-                            contacts: contactsData
-                        }));
-                        tg.close();
-                    } else {
-                        statusDiv.className = 'status success';
-                        statusDiv.textContent = `✅ Импортировано ${contactsData.length} контактов в категорию "${selectedTag}" (тестовый режим)`;
-                        btn.disabled = false;
-                        btn.innerHTML = '📖 Разрешить доступ и импортировать контакты';
-                    }
-                    
-                } catch (err) {
-                    console.error('Import error:', err);
-                    statusDiv.className = 'status error';
-                    if (err.name === 'NotAllowedError') {
-                        statusDiv.textContent = '❌ Доступ к контактам запрещён. Разрешите в настройках браузера.';
-                    } else if (err.name === 'NotSupportedError') {
-                        statusDiv.textContent = '❌ Ваш браузер не поддерживает импорт контактов. Используйте ручной ввод.';
-                    } else {
-                        statusDiv.textContent = '❌ Ошибка: ' + err.message;
-                    }
-                    btn.disabled = false;
-                    btn.innerHTML = '📖 Разрешить доступ и импортировать контакты';
-                }
+            const contactsData = [];
+            for (let c of contacts) {
+                let name = c.name?.[0] || 'Без имени';
+                let phone = c.tel?.[0]?.value || '';
+                if (phone) contactsData.push({ name, phone });
             }
-            
-            // Ручное добавление
-            function handleManualSubmit() {
-                const name = document.getElementById('manualName').value.trim();
-                const phone = document.getElementById('manualPhone').value.trim();
-                const info = document.getElementById('manualInfo').value.trim();
-                const statusDiv = document.getElementById('status');
-                
-                if (!phone) {
-                    statusDiv.className = 'status error';
-                    statusDiv.textContent = '❌ Введите номер телефона';
-                    return;
-                }
-                if (!name) {
-                    statusDiv.className = 'status error';
-                    statusDiv.textContent = '❌ Введите имя';
-                    return;
-                }
-                
-                const data = {
-                    phone: phone,
-                    name: name,
-                    info: info,
-                    tag: selectedTag
-                };
-                
-                if (webAppReady && tg) {
-                    tg.sendData(JSON.stringify(data));
-                    tg.close();
-                } else {
-                    statusDiv.className = 'status success';
-                    statusDiv.textContent = `✅ Контакт "${name}" готов к сохранению! (в Telegram режим не активен)`;
-                    // Очищаем поля
-                    document.getElementById('manualName').value = '';
-                    document.getElementById('manualPhone').value = '';
-                    document.getElementById('manualInfo').value = '';
-                }
+            if (tg) {
+                tg.sendData(JSON.stringify({ action: 'import_contacts', tag: selectedTag, contacts: contactsData }));
+                tg.close();
+            } else {
+                showStatus('✅ Импортировано ' + contactsData.length + ' контактов (тест)');
             }
-            
-            // Запуск
-            init();
-        })();
-    </script>
+        } catch (err) {
+            showStatus('❌ Ошибка: ' + err.message, true);
+        }
+    });
+
+    // Ручное сохранение
+    document.getElementById('saveBtn').addEventListener('click', () => {
+        const name = document.getElementById('name').value.trim();
+        const phone = document.getElementById('phone').value.trim();
+        const info = document.getElementById('info').value.trim();
+        if (!phone) { showStatus('❌ Введите номер телефона', true); return; }
+        if (!name) { showStatus('❌ Введите имя', true); return; }
+        const data = { phone, name, info, tag: selectedTag };
+        if (tg) {
+            tg.sendData(JSON.stringify(data));
+            tg.close();
+        } else {
+            showStatus('✅ Контакт "' + name + '" готов к сохранению');
+            document.getElementById('name').value = '';
+            document.getElementById('phone').value = '';
+            document.getElementById('info').value = '';
+        }
+    });
+</script>
 </body>
 </html>
