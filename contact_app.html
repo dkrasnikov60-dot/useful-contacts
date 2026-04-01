@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Полезные связи — импорт контактов</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .card {
+            background: rgba(255, 255, 255, 0.98);
+            border-radius: 32px;
+            padding: 32px 24px;
+            max-width: 500px;
+            width: 100%;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            animation: fadeIn 0.3s ease-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        h1 {
+            font-size: 28px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            text-align: center;
+            margin-bottom: 8px;
+        }
+        .subtitle {
+            text-align: center;
+            color: #6b7280;
+            font-size: 14px;
+            margin-bottom: 24px;
+        }
+        button {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 40px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-top: 12px;
+        }
+        button:hover {
+            transform: scale(1.02);
+            box-shadow: 0 10px 25px -5px rgba(102, 126, 234, 0.4);
+        }
+        .tag-selector {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin: 20px 0;
+        }
+        .tag {
+            padding: 8px 16px;
+            border-radius: 30px;
+            background: #f3f4f6;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .tag.selected {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .loader {
+            display: none;
+            width: 24px;
+            height: 24px;
+            border: 3px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .status {
+            margin-top: 16px;
+            padding: 12px;
+            border-radius: 12px;
+            text-align: center;
+            display: none;
+        }
+        .status.success {
+            background: #d1fae5;
+            color: #065f46;
+            display: block;
+        }
+        .status.error {
+            background: #fee2e2;
+            color: #991b1b;
+            display: block;
+        }
+        .status.info {
+            background: #dbeafe;
+            color: #1e40af;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>📱 Полезные связи</h1>
+        <p class="subtitle">Импорт контактов из телефона</p>
+
+        <div class="tag-selector" id="tagSelector">
+            <div class="tag selected" data-tag="Поставщики">📦 Поставщики</div>
+            <div class="tag" data-tag="Клиенты">🤝 Клиенты</div>
+            <div class="tag" data-tag="Друзья">👥 Друзья</div>
+            <div class="tag" data-tag="Работа">💼 Работа</div>
+            <div class="tag" data-tag="Семья">🏠 Семья</div>
+        </div>
+
+        <button id="importBtn">📖 Разрешить доступ и импортировать контакты</button>
+        <div id="status" class="status"></div>
+    </div>
+
+    <script>
+        let tg = window.Telegram?.WebApp;
+        if (tg) {
+            tg.expand();
+            tg.enableClosingConfirmation();
+            tg.BackButton.show();
+            tg.BackButton.onClick(() => tg.close());
+        }
+
+        let selectedTag = "Поставщики";
+        document.querySelectorAll('.tag').forEach(tag => {
+            tag.addEventListener('click', () => {
+                document.querySelectorAll('.tag').forEach(t => t.classList.remove('selected'));
+                tag.classList.add('selected');
+                selectedTag = tag.dataset.tag;
+            });
+        });
+
+        document.getElementById('importBtn').addEventListener('click', async () => {
+            const btn = document.getElementById('importBtn');
+            const statusDiv = document.getElementById('status');
+            
+            btn.disabled = true;
+            btn.innerHTML = '<div class="loader"></div> Загрузка...';
+            statusDiv.className = 'status info';
+            statusDiv.style.display = 'block';
+            statusDiv.textContent = 'Запрашиваем доступ к контактам...';
+            
+            try {
+                if (!navigator.contacts) {
+                    throw new Error('Ваш браузер не поддерживает импорт контактов');
+                }
+                
+                const opts = { types: [{ type: 'contacts' }] };
+                const contacts = await navigator.contacts.select(['name', 'tel'], opts);
+                
+                if (!contacts || contacts.length === 0) {
+                    statusDiv.className = 'status error';
+                    statusDiv.textContent = '❌ Контакты не выбраны или доступ запрещён';
+                    btn.disabled = false;
+                    btn.innerHTML = '📖 Разрешить доступ и импортировать контакты';
+                    return;
+                }
+                
+                statusDiv.textContent = `📥 Импортируем ${contacts.length} контактов...`;
+                
+                const contactsData = [];
+                for (let contact of contacts) {
+                    let name = contact.name?.[0] || 'Без имени';
+                    let phone = contact.tel?.[0]?.value || '';
+                    if (phone) {
+                        contactsData.push({ name, phone });
+                    }
+                }
+                
+                if (contactsData.length === 0) {
+                    statusDiv.className = 'status error';
+                    statusDiv.textContent = '❌ Нет контактов с номерами телефонов';
+                    btn.disabled = false;
+                    btn.innerHTML = '📖 Разрешить доступ и импортировать контакты';
+                    return;
+                }
+                
+                if (tg) {
+                    tg.sendData(JSON.stringify({
+                        action: 'import_contacts',
+                        tag: selectedTag,
+                        contacts: contactsData
+                    }));
+                    tg.close();
+                } else {
+                    statusDiv.className = 'status success';
+                    statusDiv.textContent = `✅ Импортировано ${contactsData.length} контактов в категорию "${selectedTag}"`;
+                    btn.disabled = false;
+                    btn.innerHTML = '📖 Разрешить доступ и импортировать контакты';
+                }
+                
+            } catch (err) {
+                statusDiv.className = 'status error';
+                if (err.name === 'NotAllowedError') {
+                    statusDiv.textContent = '❌ Доступ к контактам запрещён. Разрешите в настройках.';
+                } else {
+                    statusDiv.textContent = '❌ Ошибка: ' + err.message;
+                }
+                btn.disabled = false;
+                btn.innerHTML = '📖 Разрешить доступ и импортировать контакты';
+            }
+        });
+    </script>
+</body>
+</html>
