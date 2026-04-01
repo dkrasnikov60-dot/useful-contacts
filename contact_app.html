@@ -217,4 +217,187 @@
     });
 </script>
 </body>
+</html>            text-align: center;
+            color: #6b7280;
+            font-size: 14px;
+            margin-bottom: 24px;
+        }
+        .import-btn {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 40px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-bottom: 20px;
+        }
+        .divider {
+            text-align: center;
+            margin: 20px 0;
+            color: #9ca3af;
+            position: relative;
+        }
+        .divider::before, .divider::after {
+            content: "";
+            position: absolute;
+            top: 50%;
+            width: 40%;
+            height: 1px;
+            background: #e5e7eb;
+        }
+        .divider::before { left: 0; }
+        .divider::after { right: 0; }
+        .manual-form input, .manual-form textarea {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 12px;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+        .manual-form button {
+            width: 100%;
+            padding: 14px;
+            background: #f3f4f6;
+            border: none;
+            border-radius: 40px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 8px;
+        }
+        .tag-selector {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin: 20px 0;
+            justify-content: center;
+        }
+        .tag {
+            padding: 8px 16px;
+            border-radius: 30px;
+            background: #f3f4f6;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .tag.selected {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .status {
+            margin: 12px 0;
+            padding: 10px;
+            border-radius: 12px;
+            text-align: center;
+            font-size: 14px;
+            display: none;
+        }
+        .status.error { background: #fee2e2; color: #991b1b; display: block; }
+        .status.success { background: #d1fae5; color: #065f46; display: block; }
+    </style>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+</head>
+<body>
+<div class="card">
+    <h1>📱 Полезные связи</h1>
+    <p class="subtitle">Добавление контакта</p>
+
+    <button class="import-btn" id="importBtn">📖 Разрешить доступ и импортировать контакты</button>
+    <div class="divider">или</div>
+
+    <div class="manual-form">
+        <div class="tag-selector" id="tagSelector">
+            <div class="tag selected" data-tag="Поставщики">📦 Поставщики</div>
+            <div class="tag" data-tag="Клиенты">🤝 Клиенты</div>
+            <div class="tag" data-tag="Друзья">👥 Друзья</div>
+            <div class="tag" data-tag="Работа">💼 Работа</div>
+            <div class="tag" data-tag="Семья">🏠 Семья</div>
+        </div>
+        <input type="text" id="name" placeholder="Имя *">
+        <input type="tel" id="phone" placeholder="Телефон *">
+        <textarea id="info" placeholder="Доп. информация" rows="2"></textarea>
+        <button id="saveBtn">💾 Сохранить контакт</button>
+    </div>
+    <div id="status" class="status"></div>
+</div>
+
+<script>
+    let tg = window.Telegram?.WebApp;
+    if (tg) {
+        tg.expand();
+        tg.ready();
+        if (tg.BackButton) tg.BackButton.show();
+    }
+
+    let selectedTag = "Поставщики";
+    document.querySelectorAll('.tag').forEach(tag => {
+        tag.addEventListener('click', () => {
+            document.querySelectorAll('.tag').forEach(t => t.classList.remove('selected'));
+            tag.classList.add('selected');
+            selectedTag = tag.dataset.tag;
+        });
+    });
+
+    function showStatus(msg, isError = false) {
+        const statusDiv = document.getElementById('status');
+        statusDiv.textContent = msg;
+        statusDiv.className = 'status ' + (isError ? 'error' : 'success');
+        setTimeout(() => {
+            statusDiv.style.display = 'none';
+        }, 3000);
+    }
+
+    // Импорт контактов
+    document.getElementById('importBtn').addEventListener('click', async () => {
+        if (!navigator.contacts) {
+            showStatus('❌ Импорт контактов доступен только на телефоне (Android Chrome / iOS Safari)', true);
+            return;
+        }
+        try {
+            const contacts = await navigator.contacts.select(['name', 'tel']);
+            if (!contacts || contacts.length === 0) {
+                showStatus('❌ Контакты не выбраны', true);
+                return;
+            }
+            const contactsData = [];
+            for (let c of contacts) {
+                let name = c.name?.[0] || 'Без имени';
+                let phone = c.tel?.[0]?.value || '';
+                if (phone) contactsData.push({ name, phone });
+            }
+            if (tg) {
+                tg.sendData(JSON.stringify({ action: 'import_contacts', tag: selectedTag, contacts: contactsData }));
+                tg.close();
+            } else {
+                showStatus('✅ Импортировано ' + contactsData.length + ' контактов (тест)');
+            }
+        } catch (err) {
+            showStatus('❌ Ошибка: ' + err.message, true);
+        }
+    });
+
+    // Ручное сохранение
+    document.getElementById('saveBtn').addEventListener('click', () => {
+        const name = document.getElementById('name').value.trim();
+        const phone = document.getElementById('phone').value.trim();
+        const info = document.getElementById('info').value.trim();
+        if (!phone) { showStatus('❌ Введите номер телефона', true); return; }
+        if (!name) { showStatus('❌ Введите имя', true); return; }
+        const data = { phone, name, info, tag: selectedTag };
+        if (tg) {
+            tg.sendData(JSON.stringify(data));
+            tg.close();
+        } else {
+            showStatus('✅ Контакт "' + name + '" готов к сохранению');
+            document.getElementById('name').value = '';
+            document.getElementById('phone').value = '';
+            document.getElementById('info').value = '';
+        }
+    });
+</script>
+</body>
 </html>
