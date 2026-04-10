@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Полезные связи — добавить контакт</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .card {
+            background: white;
+            border-radius: 32px;
+            padding: 32px 24px;
+            max-width: 500px;
+            width: 100%;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        }
+        h1 {
+            font-size: 28px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            text-align: center;
+            margin-bottom: 8px;
+        }
+        .subtitle {
+            text-align: center;
+            color: #6b7280;
+            font-size: 14px;
+            margin-bottom: 24px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            color: #374151;
+            margin-bottom: 8px;
+        }
+        input, textarea, select {
+            width: 100%;
+            padding: 14px 16px;
+            border: 2px solid #e5e7eb;
+            border-radius: 16px;
+            font-size: 16px;
+            font-family: inherit;
+            transition: all 0.2s;
+            background: #f9fafb;
+        }
+        input:focus, textarea:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+        .tag-selector {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin: 12px 0;
+        }
+        .tag {
+            padding: 8px 16px;
+            border-radius: 30px;
+            background: #f3f4f6;
+            color: #4b5563;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .tag.selected {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        button {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 40px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-top: 8px;
+        }
+        button:hover {
+            transform: scale(1.02);
+            box-shadow: 0 10px 25px -5px rgba(102, 126, 234, 0.4);
+        }
+        button:active {
+            transform: scale(0.98);
+        }
+        .status {
+            margin-top: 16px;
+            padding: 12px;
+            border-radius: 16px;
+            text-align: center;
+            display: none;
+        }
+        .status.success {
+            background: #d1fae5;
+            color: #065f46;
+            display: block;
+        }
+        .status.error {
+            background: #fee2e2;
+            color: #991b1b;
+            display: block;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 24px;
+            font-size: 12px;
+            color: #9ca3af;
+        }
+    </style>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+</head>
+<body>
+    <div class="card">
+        <h1>📱 Полезные связи</h1>
+        <p class="subtitle">Добавление контакта</p>
+
+        <div class="form-group">
+            <label>📱 Номер телефона *</label>
+            <input type="tel" id="phone" placeholder="+7 999 123-45-67">
+        </div>
+
+        <div class="form-group">
+            <label>👤 Имя *</label>
+            <input type="text" id="name" placeholder="Иван Иванов">
+        </div>
+
+        <div class="form-group">
+            <label>📝 Дополнительная информация</label>
+            <textarea id="info" placeholder="Компания, должность, примечания..."></textarea>
+        </div>
+
+        <div class="form-group">
+            <label>🏷️ Категория (тег)</label>
+            <div class="tag-selector" id="tagSelector">
+                <div class="tag selected" data-tag="Поставщики">📦 Поставщики</div>
+                <div class="tag" data-tag="Клиенты">🤝 Клиенты</div>
+                <div class="tag" data-tag="Друзья">👥 Друзья</div>
+                <div class="tag" data-tag="Работа">💼 Работа</div>
+                <div class="tag" data-tag="Семья">🏠 Семья</div>
+                <div class="tag" data-tag="Свой">✏️ Свой вариант</div>
+            </div>
+            <div id="customTagGroup" style="display: none; margin-top: 12px;">
+                <input type="text" id="customTag" placeholder="Введите свой тег">
+            </div>
+        </div>
+
+        <button id="submitBtn">💾 Сохранить контакт</button>
+
+        <div class="status" id="status"></div>
+        <div class="footer">
+            Контакт будет добавлен в ваш список «Полезные связи»
+        </div>
+    </div>
+
+    <script>
+        let tg = window.Telegram?.WebApp;
+        if (tg) {
+            tg.expand();
+            tg.enableClosingConfirmation();
+            tg.BackButton.show();
+            tg.BackButton.onClick(() => tg.close());
+        }
+
+        let selectedTag = "Поставщики";
+        const tagSelector = document.getElementById('tagSelector');
+        const customTagGroup = document.getElementById('customTagGroup');
+        const customTagInput = document.getElementById('customTag');
+
+        tagSelector.addEventListener('click', (e) => {
+            const tag = e.target.closest('.tag');
+            if (!tag) return;
+
+            document.querySelectorAll('.tag').forEach(t => t.classList.remove('selected'));
+            tag.classList.add('selected');
+
+            if (tag.dataset.tag === 'Свой') {
+                customTagGroup.style.display = 'block';
+                selectedTag = '';
+            } else {
+                customTagGroup.style.display = 'none';
+                selectedTag = tag.dataset.tag;
+            }
+        });
+
+        customTagInput.addEventListener('input', () => {
+            if (customTagInput.value.trim()) {
+                selectedTag = customTagInput.value.trim();
+            }
+        });
+
+        document.getElementById('submitBtn').addEventListener('click', () => {
+            const phone = document.getElementById('phone').value.trim();
+            const name = document.getElementById('name').value.trim();
+            const info = document.getElementById('info').value.trim();
+            const statusDiv = document.getElementById('status');
+
+            if (!phone) {
+                statusDiv.className = 'status error';
+                statusDiv.textContent = '❌ Введите номер телефона';
+                setTimeout(() => statusDiv.style.display = 'none', 2000);
+                return;
+            }
+            if (!name) {
+                statusDiv.className = 'status error';
+                statusDiv.textContent = '❌ Введите имя';
+                setTimeout(() => statusDiv.style.display = 'none', 2000);
+                return;
+            }
+
+            let finalTag = selectedTag;
+            if (!finalTag && customTagInput.value.trim()) {
+                finalTag = customTagInput.value.trim();
+            }
+            if (!finalTag) finalTag = "Поставщики";
+
+            const data = { phone, name, info, tag: finalTag };
+
+            if (tg) {
+                tg.sendData(JSON.stringify(data));
+                tg.close();
+            } else {
+                statusDiv.className = 'status success';
+                statusDiv.textContent = '✅ Контакт готов к сохранению!';
+                setTimeout(() => statusDiv.style.display = 'none', 2000);
+                document.getElementById('phone').value = '';
+                document.getElementById('name').value = '';
+                document.getElementById('info').value = '';
+                document.querySelector('.tag.selected').classList.remove('selected');
+                document.querySelector('.tag').classList.add('selected');
+                customTagGroup.style.display = 'none';
+                customTagInput.value = '';
+            }
+        });
+    </script>
+</body>
+</html>
