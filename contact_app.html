@@ -178,6 +178,23 @@
             let selectedTag = "Поставщики";
             let webAppReady = false;
 
+            function showStatus(type, text) {
+                const statusDiv = document.getElementById('status');
+                statusDiv.className = `status ${type}`;
+                statusDiv.textContent = text;
+            }
+
+            function showFallbackForm() {
+                document.getElementById('fallbackForm').style.display = 'block';
+            }
+
+            function setImportButtonState({ visible = true, disabled = false, text = '📖 Разрешить доступ и импортировать контакты' } = {}) {
+                const btn = document.getElementById('importBtn');
+                btn.style.display = visible ? 'block' : 'none';
+                btn.disabled = disabled;
+                btn.innerHTML = text;
+            }
+
             // Ждём загрузки Telegram WebApp SDK
             function waitForTelegram() {
                 return new Promise((resolve) => {
@@ -212,6 +229,12 @@
                     webAppReady = true;
                     subtitle.textContent = 'Импорт контактов из телефона';
                     mainContent.style.display = 'block';
+
+                    if (!navigator.contacts || !navigator.contacts.select) {
+                        showStatus('info', 'Импорт контактов недоступен в текущем Telegram/WebView. Ниже можно добавить контакт вручную.');
+                        showFallbackForm();
+                        setImportButtonState({ visible: false });
+                    }
                     
                     // Настройка кнопки назад
                     if (tg.BackButton) {
@@ -222,10 +245,8 @@
                     // Не в Telegram — показываем только ручной ввод
                     subtitle.textContent = 'Добавление контакта';
                     mainContent.style.display = 'block';
-                    const importBtn = document.getElementById('importBtn');
-                    importBtn.style.display = 'none';
-                    const fallbackForm = document.getElementById('fallbackForm');
-                    fallbackForm.style.display = 'block';
+                    setImportButtonState({ visible: false });
+                    showFallbackForm();
                     webAppReady = false;
                 }
                 
@@ -250,48 +271,44 @@
             // Импорт контактов
             async function handleImport() {
                 const statusDiv = document.getElementById('status');
-                const btn = document.getElementById('importBtn');
                 
                 // Проверка поддержки API
-                if (!navigator.contacts) {
-                    statusDiv.className = 'status error';
-                    statusDiv.textContent = '❌ Импорт контактов доступен только на Android (Chrome) или iOS (Safari). Используйте ручной ввод ниже.';
+                if (!navigator.contacts || !navigator.contacts.select) {
+                    showStatus('error', '❌ Telegram Mini App не дал доступ к контактам устройства. Используйте ручной ввод ниже.');
+                    showFallbackForm();
                     return;
                 }
                 
-                btn.disabled = true;
-                btn.innerHTML = '<span class="loader"></span> Запрос доступа...';
-                statusDiv.className = 'status info';
-                statusDiv.textContent = 'Запрашиваем доступ к контактам...';
+                setImportButtonState({ disabled: true, text: '<span class="loader"></span> Запрос доступа...' });
+                showStatus('info', 'Запрашиваем доступ к контактам...');
                 
                 try {
                     const opts = { types: [{ type: 'contacts' }] };
                     const contacts = await navigator.contacts.select(['name', 'tel'], opts);
                     
                     if (!contacts || contacts.length === 0) {
-                        statusDiv.className = 'status error';
-                        statusDiv.textContent = '❌ Контакты не выбраны или доступ запрещён';
-                        btn.disabled = false;
-                        btn.innerHTML = '📖 Разрешить доступ и импортировать контакты';
+                        showStatus('error', '❌ Контакты не выбраны или доступ запрещён');
+                        showFallbackForm();
+                        setImportButtonState();
                         return;
                     }
                     
-                    statusDiv.textContent = `📥 Импортируем ${contacts.length} контактов...`;
+                    showStatus('info', `📥 Импортируем ${contacts.length} контактов...`);
                     
                     const contactsData = [];
                     for (let contact of contacts) {
                         let name = contact.name?.[0] || 'Без имени';
-                        let phone = contact.tel?.[0]?.value || '';
+                        let rawPhone = contact.tel?.[0] || '';
+                        let phone = typeof rawPhone === 'string' ? rawPhone : (rawPhone?.value || '');
                         if (phone) {
                             contactsData.push({ name, phone });
                         }
                     }
                     
                     if (contactsData.length === 0) {
-                        statusDiv.className = 'status error';
-                        statusDiv.textContent = '❌ Нет контактов с номерами телефонов';
-                        btn.disabled = false;
-                        btn.innerHTML = '📖 Разрешить доступ и импортировать контакты';
+                        showStatus('error', '❌ Нет контактов с номерами телефонов');
+                        showFallbackForm();
+                        setImportButtonState();
                         return;
                     }
                     
@@ -303,24 +320,21 @@
                         }));
                         tg.close();
                     } else {
-                        statusDiv.className = 'status success';
-                        statusDiv.textContent = `✅ Импортировано ${contactsData.length} контактов в категорию "${selectedTag}" (тестовый режим)`;
-                        btn.disabled = false;
-                        btn.innerHTML = '📖 Разрешить доступ и импортировать контакты';
+                        showStatus('success', `✅ Импортировано ${contactsData.length} контактов в категорию "${selectedTag}" (тестовый режим)`);
+                        setImportButtonState();
                     }
                     
                 } catch (err) {
                     console.error('Import error:', err);
-                    statusDiv.className = 'status error';
                     if (err.name === 'NotAllowedError') {
-                        statusDiv.textContent = '❌ Доступ к контактам запрещён. Разрешите в настройках браузера.';
+                        showStatus('error', '❌ Доступ к контактам запрещён. Разрешите в настройках браузера или используйте ручной ввод.');
                     } else if (err.name === 'NotSupportedError') {
-                        statusDiv.textContent = '❌ Ваш браузер не поддерживает импорт контактов. Используйте ручной ввод.';
+                        showStatus('error', '❌ Ваш браузер не поддерживает импорт контактов. Используйте ручной ввод.');
                     } else {
-                        statusDiv.textContent = '❌ Ошибка: ' + err.message;
+                        showStatus('error', '❌ Ошибка: ' + err.message);
                     }
-                    btn.disabled = false;
-                    btn.innerHTML = '📖 Разрешить доступ и импортировать контакты';
+                    showFallbackForm();
+                    setImportButtonState();
                 }
             }
             
@@ -332,13 +346,11 @@
                 const statusDiv = document.getElementById('status');
                 
                 if (!phone) {
-                    statusDiv.className = 'status error';
-                    statusDiv.textContent = '❌ Введите номер телефона';
+                    showStatus('error', '❌ Введите номер телефона');
                     return;
                 }
                 if (!name) {
-                    statusDiv.className = 'status error';
-                    statusDiv.textContent = '❌ Введите имя';
+                    showStatus('error', '❌ Введите имя');
                     return;
                 }
                 
@@ -353,8 +365,7 @@
                     tg.sendData(JSON.stringify(data));
                     tg.close();
                 } else {
-                    statusDiv.className = 'status success';
-                    statusDiv.textContent = `✅ Контакт "${name}" готов к сохранению! (в Telegram режим не активен)`;
+                    showStatus('success', `✅ Контакт "${name}" готов к сохранению! (в Telegram режим не активен)`);
                     // Очищаем поля
                     document.getElementById('manualName').value = '';
                     document.getElementById('manualPhone').value = '';
