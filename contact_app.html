@@ -131,6 +131,15 @@
             margin-bottom: 12px;
         }
 
+        input[type="file"] {
+            width: 100%;
+            border: 1px solid var(--line);
+            border-radius: 16px;
+            padding: 12px;
+            background: white;
+            margin-bottom: 12px;
+        }
+
         .hint {
             margin: 0 0 12px;
             color: var(--muted);
@@ -174,6 +183,12 @@
         <button id="showFallbackBtn" class="ghost-btn">Открыть ручной тестовый импорт</button>
 
         <div id="fallback" class="fallback">
+            <p class="hint">
+                Если Telegram не даёт доступ к контактам устройства, можно загрузить экспорт контактов файлом.
+            </p>
+            <input type="file" id="contactsFile" accept=".vcf,.csv,.txt,text/vcard,text/csv,text/plain">
+            <button id="fileImportBtn">📂 Импортировать файл контактов</button>
+
             <p class="hint">
                 Fallback для теста. Вставьте по одному контакту на строку в формате:
                 <br><strong>Анна Юрист, +79991234567</strong>
@@ -235,6 +250,47 @@
                 return result;
             }
 
+            function parseVcf(text) {
+                const cards = text.split(/END:VCARD/gi);
+                const contacts = [];
+
+                for (const card of cards) {
+                    const fnMatch = card.match(/(?:^|\n)FN[^:]*:(.+)/i);
+                    const telMatches = [...card.matchAll(/(?:^|\n)TEL[^:]*:(.+)/gi)];
+                    const name = fnMatch ? fnMatch[1].replace(/\r/g, '').trim() : 'Без имени';
+
+                    for (const telMatch of telMatches) {
+                        const phone = telMatch[1].replace(/\r/g, '').trim();
+                        if (phone) {
+                            contacts.push({ name, phone });
+                        }
+                    }
+                }
+
+                return contacts;
+            }
+
+            function parseCsvOrTxt(text) {
+                return text
+                    .split('\n')
+                    .map((line) => line.trim())
+                    .filter(Boolean)
+                    .map((line) => {
+                        const parts = line.split(',');
+                        if (parts.length === 1) {
+                            const tokens = line.split(';');
+                            return {
+                                name: (tokens[0] || 'Без имени').trim(),
+                                phone: (tokens.slice(1).join(';') || '').trim()
+                            };
+                        }
+                        return {
+                            name: (parts[0] || 'Без имени').trim(),
+                            phone: (parts.slice(1).join(',') || '').trim()
+                        };
+                    });
+            }
+
             function sendContacts(contacts) {
                 const normalized = normalizeContacts(contacts);
                 if (!normalized.length) {
@@ -252,6 +308,33 @@
                 }
 
                 showStatus('success', `Тестовый режим: подготовлено ${normalized.length} контактов.`);
+            }
+
+            async function importFromFile() {
+                const input = document.getElementById('contactsFile');
+                const file = input.files && input.files[0];
+                if (!file) {
+                    showStatus('error', 'Сначала выберите файл .vcf, .csv или .txt.');
+                    return;
+                }
+
+                const text = await file.text();
+                let contacts = [];
+                const lowerName = file.name.toLowerCase();
+
+                if (lowerName.endsWith('.vcf')) {
+                    contacts = parseVcf(text);
+                } else {
+                    contacts = parseCsvOrTxt(text);
+                }
+
+                if (!contacts.length) {
+                    showStatus('error', 'Из файла не удалось извлечь контакты.');
+                    return;
+                }
+
+                showStatus('info', `Из файла найдено ${contacts.length} контактов. Отправляем в бота...`);
+                sendContacts(contacts);
             }
 
             async function importFromDevice() {
@@ -332,6 +415,7 @@
 
                 document.getElementById('importBtn').addEventListener('click', importFromDevice);
                 document.getElementById('showFallbackBtn').addEventListener('click', showFallback);
+                document.getElementById('fileImportBtn').addEventListener('click', importFromFile);
                 document.getElementById('manualImportBtn').addEventListener('click', importFromText);
             }
 
